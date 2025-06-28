@@ -1,17 +1,18 @@
 // services/aiService.js
 const axios = require('axios');
+const config = require('./config');
 
 class AIService {
     constructor() {
-        this.provider = process.env.AI_AGENT_PROVIDER || 'custom';
+        this.provider = config.AI_AGENT_PROVIDER;
         this.client = this.createCustomClient();
     }
 
     // Custom Client
     createCustomClient() {
-        const baseURL = process.env.CUSTOM_AI_URL + process.env.CUSTOM_AI_CHAT_PATH;
-        if (!process.env.CUSTOM_AI_URL || !process.env.CUSTOM_AI_CHAT_PATH || !/^https?:\/\//.test(process.env.CUSTOM_AI_URL)) {
-            console.error('Invalid AI agent baseURL:', baseURL, '\nCheck CUSTOM_AI_URL and CUSTOM_AI_CHAT_PATH in your environment variables.');
+        const baseURL = config.CUSTOM_AI_URL + config.CUSTOM_AI_CHAT_PATH;
+        if (!config.CUSTOM_AI_URL || !config.CUSTOM_AI_CHAT_PATH || !/^https?:\/\//.test(config.CUSTOM_AI_URL)) {
+            console.error('Invalid AI agent baseURL:', baseURL, '\nCheck CUSTOM_AI_URL and CUSTOM_AI_CHAT_PATH in your config.');
         } else {
             console.log(baseURL);
         }
@@ -20,8 +21,8 @@ class AIService {
             'Content-Type': 'application/json'
         };
 
-        if (process.env.CUSTOM_AI_API_KEY) {
-            headers['Authorization'] = `Bearer ${process.env.CUSTOM_AI_API_KEY}`;
+        if (config.CUSTOM_AI_API_KEY) {
+            headers['Authorization'] = `Bearer ${config.CUSTOM_AI_API_KEY}`;
         }
 
         return axios.create({

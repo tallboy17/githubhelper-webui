@@ -1,9 +1,10 @@
 // middleware/errorHandler.js
 const winston = require('winston');
+const config = require('../services/config');
 
 // Configure Winston logger
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
+    level: config.LOG_LEVEL,
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
@@ -12,17 +13,17 @@ const logger = winston.createLogger({
     defaultMeta: { service: 'ai-assistant-api' },
     transports: [
         new winston.transports.File({ 
-            filename: process.env.LOG_FILE || 'logs/error.log', 
+            filename: config.LOG_FILE, 
             level: 'error' 
         }),
         new winston.transports.File({ 
-            filename: process.env.LOG_FILE || 'logs/combined.log' 
+            filename: config.LOG_FILE.replace('error.log', 'combined.log') 
         })
     ],
 });
 
 // Add console transport for development
-if (process.env.NODE_ENV !== 'production') {
+if (config.NODE_ENV !== 'production') {
     logger.add(new winston.transports.Console({
         format: winston.format.combine(
             winston.format.colorize(),
@@ -95,7 +96,7 @@ const errorHandler = (err, req, res, next) => {
     res.status(statusCode).json({
         success: false,
         error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        ...(config.NODE_ENV === 'development' && { stack: err.stack })
     });
 };
 

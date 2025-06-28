@@ -530,6 +530,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         class AIAssistantApp {
             constructor() {
@@ -539,6 +540,7 @@
                 this.sessionStartTime = new Date();
                 this.responseTimes = [];
                 this.isConnected = false;
+                this.chatHistory = [];
 
                 this.initializeElements();
                 this.setupEventListeners();
@@ -654,6 +656,7 @@
                     
                     const result = await response.json();
                     this.sessionId = result.sessionId;
+                    this.chatHistory = [];
                     console.log('Session created:', this.sessionId);
                 } catch (error) {
                     console.error('Failed to create session:', error);
@@ -669,34 +672,26 @@
             async sendMessage() {
                 const message = this.messageInput.value.trim();
                 if (!message || !this.isConnected) return;
-
-                // Clear welcome message if it's the first message
                 if (this.messageCount === 0) {
                     this.chatContainer.innerHTML = '';
                 }
-
-                // Add user message
                 this.addMessage(message, 'user');
+                this.chatHistory.push({ role: 'user', content: message });
                 this.messageInput.value = '';
                 this.messageInput.style.height = 'auto';
-                
-                // Show loading indicator
                 this.showLoading(true);
                 this.sendButton.disabled = true;
-
                 try {
-                    // Build the payload for the new API format
+                    const chat_history = this.chatHistory.slice(0, -1);
                     const payload = {
                         current_message: {
                             role: 'user',
                             content: message
                         },
-                        chat_history: [] // You may want to build this from your session if you track it
+                        chat_history
                     };
                     console.log('Sending to /api/chat/message:', JSON.stringify(payload, null, 2));
-
                     const startTime = Date.now();
-                    
                     const response = await fetch('/api/chat/message', {
                         method: 'POST',
                         headers: {
@@ -704,30 +699,21 @@
                         },
                         body: JSON.stringify(payload)
                     });
-
                     const responseTime = Date.now() - startTime;
-
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.error || 'Failed to send message');
                     }
-
                     const result = await response.json();
-                    
-                    // Update session ID if provided
                     if (result.sessionId) {
                         this.sessionId = result.sessionId;
                     }
-
-                    // Hide loading and add AI response
                     this.showLoading(false);
                     this.addMessage(result.response.content, 'ai');
-                    
-                    // Update stats
+                    this.chatHistory.push({ role: 'assistant', content: result.response.content });
                     this.updateStats(result.metadata);
                     this.responseTimes.push(responseTime);
                     this.updateAverageResponseTime();
-
                 } catch (error) {
                     console.error('Failed to send message:', error);
                     this.showLoading(false);
@@ -741,20 +727,19 @@
             addMessage(text, sender) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${sender}`;
-                
                 const now = new Date();
                 const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
+                let messageContent = text;
+                if (sender === 'ai') {
+                    // Convert markdown to HTML for AI messages
+                    messageContent = marked.parse(text);
+                }
                 messageDiv.innerHTML = `
-                    <div class="message-bubble">
-                        ${text}
-                    </div>
+                    <div class="message-bubble">${messageContent}</div>
                     <div class="timestamp">${timeString}</div>
                 `;
-                
                 this.chatContainer.appendChild(messageDiv);
                 this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-                
                 if (sender === 'user') {
                     this.messageCount++;
                 }

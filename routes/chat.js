@@ -3,6 +3,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const aiService = require('../services/aiService');
 const { v4: uuidv4 } = require('uuid');
+const config = require('../services/config');
 
 const router = express.Router();
 
@@ -16,8 +17,7 @@ router.post('/message', async (req, res) => {
             current_message,
             chat_history = []
         } = req.body;
-        console.log("Current Message:" +JSON.stringify(current_message, null, 2));
-        console.log("Chat History:" +JSON.stringify(chat_history, null, 2));
+       
         // Defensive check for current_message
         if (!current_message || typeof current_message !== 'object' || !current_message.role || !current_message.content) {
             return res.status(400).json({
@@ -31,8 +31,10 @@ router.post('/message', async (req, res) => {
             current_message
         ];
 
-       
+       console.log("Current Message:" + JSON.stringify(aiMessages, null, 2));
         const aiResponse = await aiService.sendMessage(aiMessages);
+
+        console.log("AI Response:" + JSON.stringify(aiResponse, null, 2));
 
         // Respond with just the AI response (no timestamp/responseTime)
         res.json({
@@ -230,8 +232,8 @@ router.get('/config', async (req, res) => {
                 maxTokens: 4000,
                 maxSessionHistory: 20,
                 rateLimit: {
-                    window: process.env.RATE_LIMIT_WINDOW_MS || 900000,
-                    maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS || 100
+                    window: config.RATE_LIMIT_WINDOW_MS || 900000,
+                    maxRequests: config.RATE_LIMIT_MAX_REQUESTS || 100
                 }
             }
         });
